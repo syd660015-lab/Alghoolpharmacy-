@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "KPI": {
+      "title": "Key Performance Indicator",
+      "description": "Standardized metric for healthcare quality",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "value": { "type": "number" },
+        "unit": { "type": "string" },
+        "trend": { "type": "string", "enum": ["up", "down", "stable"] },
+        "target": { "type": "number" },
+        "status": { "type": "string", "enum": ["good", "warning", "critical"] },
+        "category": { "type": "string", "enum": ["operational", "clinical", "satisfaction"] },
+        "history": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      },
+      "required": ["id", "name", "value", "unit", "trend", "target", "status", "category"]
+    },
+    "Dashboard": {
+      "title": "Facility Dashboard",
+      "description": "Complete TQM dashboard for a health facility",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string" },
+        "facilityName": { "type": "string" },
+        "operational": { "type": "object" },
+        "clinical": { "type": "object" },
+        "satisfaction": { "type": "object" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "facilityName", "operational", "clinical", "satisfaction", "lastUpdated"]
+    }
+  },
+  "firestore": {
+    "/dashboards/{dashboardId}": {
+      "schema": "Dashboard",
+      "description": "Main dashboard data for a user's facility"
+    }
+  }
+}

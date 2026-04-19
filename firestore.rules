@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(resourceData) {
+      return isSignedIn() && resourceData.ownerId == request.auth.uid;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation for Dashboard Entity
+    function isValidDashboard(data) {
+      return data.keys().hasAll(['ownerId', 'facilityName', 'operational', 'clinical', 'satisfaction', 'lastUpdated'])
+        && data.ownerId == request.auth.uid
+        && data.facilityName is string && data.facilityName.size() <= 200
+        && data.operational is map
+        && data.clinical is map
+        && data.satisfaction is map
+        && data.lastUpdated is string;
+    }
+
+    match /dashboards/{dashboardId} {
+      // Use path variable for identity check on get, allowing listeners on non-existent docs
+      allow get: if isSignedIn() && request.auth.uid == dashboardId;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      
+      allow create: if isSignedIn() 
+        && request.auth.uid == dashboardId
+        && isValidId(dashboardId) 
+        && isValidDashboard(incoming());
+        
+      allow update: if isSignedIn() 
+        && request.auth.uid == dashboardId
+        && isOwner(existing())
+        && isValidDashboard(incoming())
+        && (
+          // Action: Update Metrics
+          incoming().diff(existing()).affectedKeys().hasAny(['operational', 'clinical', 'satisfaction', 'lastUpdated'])
+        );
+        
+      allow delete: if isSignedIn() && request.auth.uid == dashboardId;
+    }
+  }
+}
