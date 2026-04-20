@@ -355,13 +355,23 @@ export default function App() {
     try {
       await signIn();
     } catch (error: any) {
+      console.error('Detailed Sign-in error:', error);
+      
       if (error.code === 'auth/popup-closed-by-user') {
-        setAuthError('Sign-in cancelled. Please keep the window open to log in.');
+        setAuthError('تم إلغاء تسجيل الدخول. يرجى إبقاء النافذة مفتوحة لإكمال العملية.');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        setAuthError('هذا النطاق غير مصرح به في إعدادات Firebase. يرجى إضافة النطاق الحالي للوحة تحكم Firebase.');
+      } else if (error.code === 'auth/popup-blocked') {
+        setAuthError('تم حظر النافذة المنبثقة من قبل المتصفح. يرجى السماح بالنوافذ المنبثقة لهذا الموقع.');
+      } else if (error.code === 'auth/network-request-failed') {
+        setAuthError('فشل الاتصال بالشبكة. يرجى التحقق من اتصالك بالإنترنت.');
       } else {
-        setAuthError('An unexpected error occurred during sign-in.');
-        console.error('Sign-in error:', error);
+        setAuthError(`خطأ (${error.code || 'unknown'}): يرجى المحاولة مرة أخرى أو التأكد من إعدادات المتصفح.`);
       }
-      setTimeout(() => setAuthError(null), 5000);
+      
+      // Extended timeout for configuration issues
+      const timeout = (error.code === 'auth/unauthorized-domain') ? 20000 : 7000;
+      setTimeout(() => setAuthError(null), timeout);
     }
   };
 
