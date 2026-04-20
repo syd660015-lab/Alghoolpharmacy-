@@ -338,7 +338,11 @@ export default function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [dateRange, setDateRange] = useState({ start: '2026-04-12', end: '2026-04-18' });
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [dateRange, setDateRange] = useState({ 
+    start: '2026-04-01', 
+    end: new Date().toISOString().split('T')[0] 
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [editFacility, setEditFacility] = useState('');
   const dashboardRef = React.useRef<HTMLDivElement>(null);
@@ -352,6 +356,7 @@ export default function App() {
 
   const handleSignIn = async () => {
     setAuthError(null);
+    setIsSigningIn(true);
     try {
       await signIn();
     } catch (error: any) {
@@ -369,9 +374,10 @@ export default function App() {
         setAuthError(`خطأ (${error.code || 'unknown'}): يرجى المحاولة مرة أخرى أو التأكد من إعدادات المتصفح.`);
       }
       
-      // Extended timeout for configuration issues
       const timeout = (error.code === 'auth/unauthorized-domain') ? 20000 : 7000;
       setTimeout(() => setAuthError(null), timeout);
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
@@ -541,9 +547,14 @@ export default function App() {
         
         <button 
           onClick={handleSignIn}
-          className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white rounded-xl py-4 font-semibold hover:bg-slate-800 transition-all group"
+          disabled={isSigningIn}
+          className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white rounded-xl py-4 font-semibold hover:bg-slate-800 transition-all group disabled:opacity-50"
         >
-          <LogIn size={20} className="group-hover:translate-x-0.5 transition-transform" />
+          {isSigningIn ? (
+            <RefreshCw size={20} className="animate-spin" />
+          ) : (
+            <LogIn size={20} className="group-hover:translate-x-0.5 transition-transform" />
+          )}
           Access Dashboard
         </button>
 
