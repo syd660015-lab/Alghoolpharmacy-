@@ -365,7 +365,8 @@ export default function App() {
       if (error.code === 'auth/popup-closed-by-user') {
         setAuthError('تم إلغاء تسجيل الدخول. يرجى إبقاء النافذة مفتوحة لإكمال العملية.');
       } else if (error.code === 'auth/unauthorized-domain') {
-        setAuthError('هذا النطاق غير مصرح به في إعدادات Firebase. يرجى إضافة النطاق الحالي للوحة تحكم Firebase.');
+        const domain = window.location.hostname;
+        setAuthError(`هذا النطاق (${domain}) غير مصرح به. يرجى إضافته في إعدادات Firebase Console تحت Authorized Domains.`);
       } else if (error.code === 'auth/popup-blocked') {
         setAuthError('تم حظر النافذة المنبثقة من قبل المتصفح. يرجى السماح بالنوافذ المنبثقة لهذا الموقع.');
       } else if (error.code === 'auth/network-request-failed') {
@@ -574,7 +575,11 @@ export default function App() {
         <div className="mt-8 pt-8 border-t border-slate-100 flex flex-col gap-1 items-center">
           <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">Research Study By</p>
           <p className="text-sm font-medium text-slate-600">Aya Adel Kamel Elbayomi</p>
-          <p className="text-[10px] text-slate-400">Suez Canal University | TQM in Healthcare</p>
+          <p className="text-[10px] text-slate-400 mb-2">Suez Canal University | TQM in Healthcare</p>
+          <div className="pt-4 border-t border-slate-50 w-full text-center">
+            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Developed By</p>
+            <p className="text-xs font-semibold text-indigo-600 font-arabic" dir="rtl">تصميم وبرمجة: دكتور. أحمد حمدي عاشور الغول</p>
+          </div>
         </div>
       </motion.div>
     </div>
@@ -780,8 +785,8 @@ export default function App() {
                       <p className="text-sm">Suez Canal University</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Developer</p>
-                      <p className="text-sm text-indigo-400">Dr. Ahmed Hamdy Ashour</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Developer</p>
+                      <p className="text-sm text-indigo-400 font-arabic" dir="rtl">تصميم وبرمجة: دكتور. أحمد حمدي عاشور الغول</p>
                     </div>
                   </div>
                 </div>
@@ -803,6 +808,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-sm text-slate-400">© 2026 HealthQuality Pro - Continuous Quality Improvement</p>
           <div className="flex gap-6">
+            <a href="https://alghoolpharmacy.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-indigo-500 uppercase tracking-widest hover:text-indigo-700 transition-colors">Digital Pharmacy</a>
             <a href="#" className="text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors">Documentation</a>
             <a href="#" className="text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors">Research Paper</a>
             <a href="#" className="text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors">Privacy</a>
