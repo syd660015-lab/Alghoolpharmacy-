@@ -10,7 +10,7 @@ import {
 import { 
   Activity, Clock, Users, ShieldAlert, Heart, MessageSquare, TrendingUp, TrendingDown, 
   Minus, RefreshCw, LogIn, LogOut, LayoutDashboard, BrainCircuit, Sparkles, AlertCircle,
-  Menu, Info, FileText, Download, FileSpreadsheet
+  Menu, Info, FileText, Download, FileSpreadsheet, Edit3, Save, X, Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
@@ -40,11 +40,26 @@ const StatCard: React.FC<{ kpi: KPIBase; labelAr: string }> = ({ kpi, labelAr })
     critical: 'text-rose-600 bg-rose-50 border-rose-100'
   };
 
+  const progress = useMemo(() => {
+    if (kpi.unit === '%' || kpi.unit === '/100') return Math.min(100, Math.max(0, kpi.value));
+    if (kpi.unit === '/5') return (kpi.value / 5) * 100;
+    if (kpi.unit === '/10') return (kpi.value / 10) * 100;
+    return null;
+  }, [kpi]);
+
+  const trendValue = useMemo(() => {
+    if (kpi.history.length < 2) return 0;
+    const last = kpi.history[kpi.history.length - 1].value;
+    const prev = kpi.history[kpi.history.length - 2].value;
+    if (prev === 0) return 0;
+    return (((last - prev) / prev) * 100).toFixed(1);
+  }, [kpi.history]);
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="dashboard-card group"
+      className="dashboard-card group relative overflow-hidden"
     >
       <div className="flex justify-between items-start mb-4">
         <div>
@@ -66,16 +81,35 @@ const StatCard: React.FC<{ kpi: KPIBase; labelAr: string }> = ({ kpi, labelAr })
           isUp ? "text-emerald-500" : isDown ? "text-rose-500" : "text-slate-400"
         )}>
           {isUp ? <TrendingUp size={16} className="mr-1" /> : isDown ? <TrendingDown size={16} className="mr-1" /> : <Minus size={16} className="mr-1" />}
-          {isUp ? '+2.4%' : isDown ? '-1.8%' : 'Stable'}
+          {Math.abs(Number(trendValue))}%
         </div>
       </div>
 
-      <div className="h-24 w-full">
+      {progress !== null && (
+        <div className="mb-6">
+          <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+            <span>Progress to Target</span>
+            <span>Target: {kpi.target}{kpi.unit}</span>
+          </div>
+          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              className={cn(
+                "h-full rounded-full transition-all duration-1000",
+                kpi.status === 'good' ? "bg-emerald-500" : kpi.status === 'warning' ? "bg-amber-500" : "bg-rose-500"
+              )}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="h-24 w-full -mx-2">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={kpi.history}>
             <defs>
               <linearGradient id={`gradient-${kpi.id}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={isUp ? "#10b981" : "#f59e0b"} stopOpacity={0.1}/>
+                <stop offset="5%" stopColor={isUp ? "#10b981" : "#f59e0b"} stopOpacity={0.15}/>
                 <stop offset="95%" stopColor={isUp ? "#10b981" : "#f59e0b"} stopOpacity={0}/>
               </linearGradient>
             </defs>
@@ -91,6 +125,76 @@ const StatCard: React.FC<{ kpi: KPIBase; labelAr: string }> = ({ kpi, labelAr })
         </ResponsiveContainer>
       </div>
     </motion.div>
+  );
+};
+
+const DataEntrySection: React.FC<{ 
+  data: DashboardData; 
+  onUpdate: (cat: 'operational' | 'clinical' | 'satisfaction', key: string, val: number) => void 
+}> = ({ data, onUpdate }) => {
+  const [open, setOpen] = useState(false);
+
+  const flatKpis = useMemo(() => {
+    return [
+      { cat: 'operational', key: 'waitingTime', kpi: data.operational.waitingTime },
+      { cat: 'operational', key: 'workflowEfficiency', kpi: data.operational.workflowEfficiency },
+      { cat: 'operational', key: 'resourceUtilization', kpi: data.operational.resourceUtilization },
+      { cat: 'clinical', key: 'medicationErrors', kpi: data.clinical.medicationErrors },
+      { cat: 'clinical', key: 'treatmentAdherence', kpi: data.clinical.treatmentAdherence },
+      { cat: 'clinical', key: 'clinicalOutcomes', kpi: data.clinical.clinicalOutcomes },
+      { cat: 'satisfaction', key: 'surveyScore', kpi: data.satisfaction.surveyScore },
+      { cat: 'satisfaction', key: 'serviceResponsiveness', kpi: data.satisfaction.serviceResponsiveness },
+      { cat: 'satisfaction', key: 'engagement', kpi: data.satisfaction.engagement },
+    ];
+  }, [data]);
+
+  return (
+    <section className="mb-12">
+      <button 
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl hover:border-indigo-200 transition-all font-semibold text-slate-700"
+      >
+        <div className="flex items-center gap-3">
+          <Edit3 className="text-indigo-600" size={20} />
+          <span>Manual Data Entry / Update Indicators</span>
+        </div>
+        {open ? <Minus size={20} /> : <Plus size={20} />}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+              {flatKpis.map(({ cat, key, kpi }) => (
+                <div key={kpi.id} className="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                  <div className="flex-1 mr-4">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cat}</p>
+                    <p className="text-sm font-semibold text-slate-800 truncate">{kpi.name}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="number" 
+                      defaultValue={kpi.value}
+                      onBlur={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val)) onUpdate(cat as any, key, val);
+                      }}
+                      className="w-20 px-2 py-1 text-right font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                    />
+                    <span className="text-xs text-slate-400 min-w-[30px]">{kpi.unit}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
   );
 };
 
@@ -235,6 +339,8 @@ export default function App() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [dateRange, setDateRange] = useState({ start: '2026-04-12', end: '2026-04-18' });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFacility, setEditFacility] = useState('');
   const dashboardRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -267,7 +373,6 @@ export default function App() {
       if (docSnap.exists()) {
         setData(docSnap.data() as DashboardData);
       } else {
-        // Initialize with mock data for new user
         const initial = { ...INITIAL_DATA, ownerId: user.uid, facilityName: 'General Hospital' };
         setDoc(docRef, initial);
         setData(initial);
@@ -276,6 +381,53 @@ export default function App() {
 
     return () => unsub();
   }, [user]);
+
+  useEffect(() => {
+    if (data) setEditFacility(data.facilityName);
+  }, [data]);
+
+  const handleUpdateFacility = async () => {
+    if (!user || !data) return;
+    const docRef = doc(db, 'dashboards', user.uid);
+    await setDoc(docRef, { ...data, facilityName: editFacility }, { merge: true });
+    setIsEditing(false);
+  };
+
+  const handleManualDataUpdate = async (category: 'operational' | 'clinical' | 'satisfaction', kpiKey: string, newValue: number) => {
+    if (!user || !data) return;
+    
+    const updatedData = { ...data };
+    const kpi = (updatedData as any)[category][kpiKey] as KPIBase;
+    
+    // Add old value to history if today's date doesn't exist
+    const today = new Date().toISOString().split('T')[0];
+    const history = [...kpi.history];
+    const existingIndex = history.findIndex(h => h.date === today);
+    
+    if (existingIndex >= 0) {
+      history[existingIndex].value = newValue;
+    } else {
+      history.push({ date: today, value: newValue });
+    }
+    
+    kpi.value = newValue;
+    kpi.history = history;
+    
+    // Determine trend
+    if (history.length > 1) {
+      const prev = history[history.length - 2].value;
+      kpi.trend = newValue > prev ? 'up' : newValue < prev ? 'down' : 'stable';
+    }
+    
+    // Update status based on distance to target (simplified logic)
+    const diff = Math.abs(newValue - kpi.target);
+    if (diff / kpi.target < 0.1) kpi.status = 'good';
+    else if (diff / kpi.target < 0.25) kpi.status = 'warning';
+    else kpi.status = 'critical';
+
+    const docRef = doc(db, 'dashboards', user.uid);
+    await setDoc(docRef, updatedData);
+  };
 
   const handleAIAnalysis = async () => {
     if (!data) return;
@@ -440,9 +592,31 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-          <div>
-            <h2 className="text-3xl font-bold text-slate-900 mb-1">Facility Overview</h2>
-            <p className="text-slate-500">Monitoring real-time quality indicators for <span className="font-semibold text-indigo-600">{data?.facilityName}</span></p>
+          <div className="flex-1">
+            {isEditing ? (
+              <div className="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  value={editFacility}
+                  onChange={(e) => setEditFacility(e.target.value)}
+                  className="text-3xl font-bold text-slate-900 border-b-2 border-indigo-600 focus:outline-none bg-transparent"
+                  autoFocus
+                />
+                <button onClick={handleUpdateFacility} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><Save size={20}/></button>
+                <button onClick={() => setIsEditing(false)} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg"><X size={20}/></button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <h2 className="text-3xl font-bold text-slate-900">{data?.facilityName} Overview</h2>
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                >
+                  <Edit3 size={18} />
+                </button>
+              </div>
+            )}
+            <p className="text-slate-500 mt-1">Monitoring real-time quality indicators for the facility</p>
           </div>
           <div className="flex items-center gap-3">
             <button 
@@ -473,9 +647,12 @@ export default function App() {
         </div>
 
         {data ? (
-          <div ref={dashboardRef} className="grid grid-cols-1 lg:grid-cols-4 gap-8 p-4 -m-4">
-            {/* Main Metrics Column */}
-            <div className="lg:col-span-3 space-y-12">
+          <div ref={dashboardRef} className="px-4 -mx-4 pb-12">
+            <DataEntrySection data={data} onUpdate={handleManualDataUpdate} />
+            
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              {/* Main Metrics Column */}
+              <div className="lg:col-span-3 space-y-12">
               
               {/* Operational KPIs */}
               <section>
@@ -592,7 +769,8 @@ export default function App() {
               </div>
             </aside>
           </div>
-        ) : (
+        </div>
+      ) : (
           <div className="flex flex-col items-center justify-center py-20">
              <RefreshCw className="animate-spin text-slate-300 mb-4" size={32} />
              <p className="text-slate-400 font-medium">Syncing with HealthQuality Cloud...</p>
